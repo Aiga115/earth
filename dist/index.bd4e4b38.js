@@ -560,10 +560,21 @@ function hmrAccept(bundle, id) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 var _three = require("three");
 var _orbitControlsJs = require("three/examples/jsm/controls/OrbitControls.js");
+var _dragControls = require("drag-controls");
+var _dragControlsDefault = parcelHelpers.interopDefault(_dragControls);
 var _earthJpg = require("./earth.jpg");
 var _earthJpgDefault = parcelHelpers.interopDefault(_earthJpg);
+var _mercuryJpg = require("./mercury.jpg");
+var _mercuryJpgDefault = parcelHelpers.interopDefault(_mercuryJpg);
+var _veneraJpg = require("./venera.jpg");
+var _veneraJpgDefault = parcelHelpers.interopDefault(_veneraJpg);
+var _moonJpg = require("./moon.jpg");
+var _moonJpgDefault = parcelHelpers.interopDefault(_moonJpg);
 var _starsJpg = require("./stars.jpg");
 var _starsJpgDefault = parcelHelpers.interopDefault(_starsJpg);
+(0, _dragControlsDefault.default).install({
+    THREE: _three
+});
 const canvas = document.querySelector(".canvas");
 //renderer
 const renderer = new _three.WebGLRenderer({
@@ -575,9 +586,9 @@ renderer.setPixelRatio(window.devicePixelRatio);
 const scene = new _three.Scene();
 //camera
 const camera = new _three.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-const orbit = new (0, _orbitControlsJs.OrbitControls)(camera, renderer.domElement);
-camera.position.set(-90, 140, 140);
-orbit.update();
+// const orbit = new OrbitControls(camera, renderer.domElement);
+camera.position.z = 200;
+// orbit.update();
 //lighting
 const ambientLight = new _three.AmbientLight(0x333333);
 scene.add(ambientLight);
@@ -599,12 +610,47 @@ const mat = new _three.MeshBasicMaterial({
 });
 const earth = new _three.Mesh(geo, mat);
 scene.add(earth);
+const mat2 = new _three.MeshBasicMaterial({
+    map: textureLoader.load((0, _mercuryJpgDefault.default))
+});
+const mercury = new _three.Mesh(geo, mat2);
+scene.add(mercury);
+const mat3 = new _three.MeshBasicMaterial({
+    map: textureLoader.load((0, _veneraJpgDefault.default))
+});
+const venera = new _three.Mesh(geo, mat3);
+scene.add(venera);
+const mat4 = new _three.MeshBasicMaterial({
+    map: textureLoader.load((0, _moonJpgDefault.default))
+});
+const moon = new _three.Mesh(geo, mat4);
+scene.add(moon);
 const pointLight = new _three.PointLight(0xFFFFFF, 2, 300);
 scene.add(pointLight);
+const planets = [
+    earth,
+    mercury,
+    venera,
+    moon
+];
+for(var i = 0; i < planets.length; i++){
+    planets[i].position.x = Math.random() * 100 - 50;
+    planets[i].position.y = Math.random() * 60 - 30;
+    planets[i].position.z = Math.random() * 80 - 40;
+}
+const dragAndDrop = new (0, _dragControlsDefault.default)(planets, camera, renderer.domElement);
 function animate() {
-    earth.rotateY(0.004);
+    const randomRotation = Math.floor(Math.random() * 5) >= 1 ? 0.004 : 0;
+    earth.rotateY(randomRotation);
+    mercury.rotateY(randomRotation);
+    venera.rotateY(randomRotation);
+    moon.rotateY(randomRotation);
+    // console.log('Math randomL: ',randomRotation)
     renderer.render(scene, camera);
 }
+renderer.domElement.addEventListener("mousemove", function() {
+    renderer.render(scene, camera);
+});
 renderer.setAnimationLoop(animate);
 //making more adaptive
 window.addEventListener("resize", function() {
@@ -613,7 +659,7 @@ window.addEventListener("resize", function() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","./earth.jpg":"1KPdT","./stars.jpg":"9TGqC","@parcel/transformer-js/src/esmodule-helpers.js":"hB1uZ"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","./earth.jpg":"1KPdT","./stars.jpg":"9TGqC","@parcel/transformer-js/src/esmodule-helpers.js":"hB1uZ","drag-controls":"4ZCVP","./mercury.jpg":"fzXCS","./venera.jpg":"dd68l","./moon.jpg":"jlOnC"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2023 Three.js Authors
@@ -30635,6 +30681,193 @@ exports.getOrigin = getOrigin;
 },{}],"9TGqC":[function(require,module,exports) {
 module.exports = require("77c50aa97a532cc8").getBundleURL("dnDbq") + "stars.14f1533c.jpg" + "?" + Date.now();
 
-},{"77c50aa97a532cc8":"jTecA"}]},["cVVUC","ffWWy"], "ffWWy", "parcelRequire94c2")
+},{"77c50aa97a532cc8":"jTecA"}],"4ZCVP":[function(require,module,exports) {
+/*!
+    * drag-controls
+    * https://github.com/jbyte/three-dragcontrols
+    * (c) 2018 @jbyte
+    * Released under the MIT License.
+    */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) throw new TypeError("Cannot call a class as a function");
+}
+var THREE = void 0;
+var _plane = void 0;
+var _raycaster = void 0;
+var _mouse = void 0;
+var _offset = void 0;
+var _intersection = void 0;
+var _selected = void 0;
+var _hovered = void 0;
+var DragControls = function() {
+    DragControls.install = function install(lib) {
+        THREE = lib.THREE;
+        _plane = new THREE.Plane();
+        _raycaster = new THREE.Raycaster();
+        _mouse = new THREE.Vector2();
+        _offset = new THREE.Vector3();
+        _intersection = new THREE.Vector3();
+        _selected = null;
+        _hovered = null;
+        DragControls.prototype = Object.create(THREE.EventDispatcher.prototype);
+    };
+    function DragControls(objects, camera, domElement) {
+        var _this = this;
+        _classCallCheck(this, DragControls);
+        this.objects = objects;
+        this.enabled = true;
+        this.camera = camera;
+        this.domElement = domElement;
+        var scope = this;
+        this.activate = function() {
+            if (!_this.domElement) {
+                console.log("Cannot activate the drag controls on a null DOM element");
+                return;
+            }
+            _this.domElement.addEventListener("mousedown", onDocumentMouseDown, false);
+            _this.domElement.addEventListener("mousemove", onDocumentMouseMove, false);
+            _this.domElement.addEventListener("mouseup", onDocumentMouseCancel, false);
+            _this.domElement.addEventListener("mouseleave", onDocumentMouseCancel, false);
+            _this.domElement.addEventListener("touchstart", onDocumentTouchStart, false);
+            _this.domElement.addEventListener("touchmove", onDocumentTouchMove, false);
+            _this.domElement.addEventListener("touchend", onDocumentTouchEnd, false);
+        };
+        this.deactivate = function() {
+            if (!_this.domElement) {
+                console.log("Cannot deactivate the drag controls on a null DOM element");
+                return;
+            }
+            _this.domElement.removeEventListener("mousedown", onDocumentMouseDown, false);
+            _this.domElement.removeEventListener("mousemove", onDocumentMouseMove, false);
+            _this.domElement.removeEventListener("mouseup", onDocumentMouseCancel, false);
+            _this.domElement.removeEventListener("mouseleave", onDocumentMouseCancel, false);
+            _this.domElement.removeEventListener("touchstart", onDocumentTouchStart, false);
+            _this.domElement.removeEventListener("touchmove", onDocumentTouchMove, false);
+            _this.domElement.removeEventListener("touchend", onDocumentTouchEnd, false);
+        };
+        function onDocumentMouseDown(event) {
+            event.preventDefault();
+            _raycaster.setFromCamera(_mouse, scope.camera);
+            var intersects = _raycaster.intersectObjects(scope.objects);
+            if (intersects.length > 0) {
+                _selected = intersects[0].object;
+                if (_raycaster.ray.intersectPlane(_plane, _intersection)) _offset.copy(_intersection).sub(_selected.position);
+                scope.domElement.style.cursor = "move";
+                scope.dispatchEvent({
+                    type: "dragstart",
+                    object: _selected
+                });
+            }
+        }
+        function onDocumentMouseMove(event) {
+            event.preventDefault();
+            var rect = scope.domElement.getBoundingClientRect();
+            _mouse.x = (event.clientX - rect.left) / rect.width * 2 - 1;
+            _mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            _raycaster.setFromCamera(_mouse, scope.camera);
+            if (_selected && scope.enabled) {
+                if (_raycaster.ray.intersectPlane(_plane, _intersection)) _selected.position.copy(_intersection.sub(_offset));
+                scope.dispatchEvent({
+                    type: "drag",
+                    object: _selected
+                });
+                return;
+            }
+            _raycaster.setFromCamera(_mouse, scope.camera);
+            var intersects = _raycaster.intersectObjects(scope.objects);
+            if (intersects.length > 0) {
+                var object = intersects[0].object;
+                _plane.setFromNormalAndCoplanarPoint(scope.camera.getWorldDirection(_plane.normal), object.position);
+                if (_hovered !== object) {
+                    scope.dispatchEvent({
+                        type: "hoveron",
+                        object: object
+                    });
+                    scope.domElement.style.cursor = "pointer";
+                    _hovered = object;
+                }
+            } else if (_hovered !== null) {
+                scope.dispatchEvent({
+                    type: "hoveroff",
+                    object: _hovered
+                });
+                scope.domElement.style.cursor = "auto";
+                _hovered = null;
+            }
+        }
+        function onDocumentMouseCancel(event) {
+            event.preventDefault();
+            if (_selected) {
+                scope.dispatchEvent({
+                    type: "dragend",
+                    object: _selected
+                });
+                _selected = null;
+            }
+            scope.domElement.style.cursor = "auto";
+        }
+        function onDocumentTouchStart(event) {
+            event.preventDefault();
+            event = evnet.changedTouches[0];
+            var rect = scope.domElement.getBoundingClientRect();
+            _mouse.x = (event.clientX - rect.left) / rect.width * 2 - 1;
+            _mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            _raycaster.setFromCamera(_mouse, scope.camera);
+            var intersects = _raycaster.intersectObjects(scope.objects);
+            if (intersects.length > 0) {
+                _selected = intersects[0].object;
+                _plane.setFromNormalAndCoplanarPoint(scope.camera.getWorldDirection(_plane.normal), _selected.position);
+                if (_raycaster.ray.intersectPlane(_plane, _intersection)) _offset.copy(_intersection).sub(_selected.position);
+                scope.domElement.style.cursor = "move";
+                scope.dispatchEvent({
+                    type: "dragstart",
+                    object: _selected
+                });
+            }
+        }
+        function onDocumentTouchMove(event) {
+            event.preventDefault();
+            event = event.changedTouches[0];
+            var rect = scope.domElement.getBoundingClientRect();
+            _mouse.x = (event.clientX - rect.left) / rect.width * 2 - 1;
+            _mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            _raycaster.setFromCamera(_mouse, scope.camera);
+            if (_selected && scope.enabled) {
+                if (_raycaster.ray.intersectPlane(_plane, _intersection)) _selected.position.copy(_intersection.sub(_offset));
+                scope.dispatchEvent({
+                    type: "drag",
+                    object: _selected
+                });
+                return;
+            }
+        }
+        function onDocumentTouchEnd(event) {
+            event.preventDefault();
+            if (_selected) {
+                scope.dispatchEvent({
+                    type: "dragend",
+                    object: _selected
+                });
+                _selected = null;
+            }
+            scope.domElement.style.cursor = "auto";
+        }
+        this.activate();
+    }
+    return DragControls;
+}();
+exports.default = DragControls;
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"hB1uZ"}],"fzXCS":[function(require,module,exports) {
+module.exports = require("c7947ffc7dc72f8b").getBundleURL("dnDbq") + "mercury.8a8fee34.jpg" + "?" + Date.now();
+
+},{"c7947ffc7dc72f8b":"jTecA"}],"dd68l":[function(require,module,exports) {
+module.exports = require("c5deadf9271e8f21").getBundleURL("dnDbq") + "venera.ad9566a8.jpg" + "?" + Date.now();
+
+},{"c5deadf9271e8f21":"jTecA"}],"jlOnC":[function(require,module,exports) {
+module.exports = require("44f8f862b8159789").getBundleURL("dnDbq") + "moon.ff2ad6fb.jpg" + "?" + Date.now();
+
+},{"44f8f862b8159789":"jTecA"}]},["cVVUC","ffWWy"], "ffWWy", "parcelRequire94c2")
 
 //# sourceMappingURL=index.bd4e4b38.js.map
