@@ -6,4 +6,5 @@ About
  
 How to run?</br>
 <code>npm install three</code> <br/>
+<code>npm install drag-controls</code> <br/>
 <code>npx parcel index.html</code>
