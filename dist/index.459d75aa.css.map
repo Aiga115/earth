@@ -1,1 +1,0 @@
-{"mappings":"AAAA;;;;;;AAKA","sources":["earth/style.css"],"sourcesContent":["* {\r\n    margin:0;\r\n    padding: 0;\r\n    box-sizing: border-box;\r\n}\r\nbody{\r\n    margin: 0;\r\n    overflow-y: hidden;\r\n    overflow-x: hidden;\r\n}"],"names":[],"version":3,"file":"index.459d75aa.css.map","sourceRoot":"/__parcel_source_root/"}
